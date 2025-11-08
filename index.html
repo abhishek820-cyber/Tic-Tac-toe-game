@@ -3,169 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Game</title>
+  <title>Tic Tac Toe</title>
   <link rel="stylesheet" href="game.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Animated darker neon background */
+    .landing-body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(-45deg, #3b0066, #1e0033, #330066, #660099);
+      background-size: 400% 400%;
+      animation: gradientShift 10s ease infinite;
+      transition: opacity 0.8s ease;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .landing.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .landing {
+      text-align: center;
+      color: #00ffff;
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: 0 0 15px #00ffff;
+      transition: opacity 0.5s;
+    }
+
+    .heading {
+      font-size: 3rem;
+      margin-bottom: 10px;
+      color: #00ffff;
+      text-shadow: 0 0 15px #00ffff;
+    }
+
+    .subheading {
+      font-size: 2.2rem;
+      color: #ffffff;
+      margin-bottom: 50px;
+      min-height: 50px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    /* Buttons now brighter against dark purple-blue bg */
+    .glow-btn {
+      background: none;
+      border: 2px solid #00ffff;
+      color: #00ffff;
+      padding: 12px 30px;
+      font-size: 1.2rem;
+      border-radius: 10px;
+      margin: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 12px #00ffff33;
+    }
+
+    .glow-btn:hover {
+      background: #00ffff;
+      color: #260033;
+      box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+      transform: scale(1.05);
+    }
+
+    .glow-btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 0 10px #00ffff;
+    }
+  </style>
 </head>
-<body class="game-body x-turn">
-
-  <div class="game-container">
-    <div class="scoreboard">
-      <span id="xScore">X: 0</span> | <span id="oScore">O: 0</span>
-    </div>
-
-    <p id="status">Player X's turn</p>
-
-    <div class="board-wrapper"> 
-      <div class="grid" id="board"> 
-        <div class="cell" data-index="0"></div>
-        <div class="cell" data-index="1"></div>
-        <div class="cell" data-index="2"></div>
-        <div class="cell" data-index="3"></div>
-        <div class="cell" data-index="4"></div>
-        <div class="cell" data-index="5"></div>
-        <div class="cell" data-index="6"></div>
-        <div class="cell" data-index="7"></div>
-        <div class="cell" data-index="8"></div>
-      </div>
-      <div class="strike-line" id="strike"></div>
-    </div>
-
-    <button id="reset-btn" class="glow-btn">Restart</button>
-    <button id="home-btn" class="glow-btn" style="margin-top: 5px;">Back to Menu</button>
+<body class="landing-body">
+  <div class="landing" id="landing">
+    <h1 class="heading">Let’s Play:</h1>
+    <h2 class="subheading" id="title"></h2>
+    <button class="glow-btn" id="ai-btn">Play with AI 🤖</button>
+    <button class="glow-btn" id="two-btn">2 Players 👥</button>
   </div>
 
   <script>
-    const cells = document.querySelectorAll(".cell");
-    const status = document.getElementById("status");
-    const resetBtn = document.getElementById("reset-btn");
-    const homeBtn = document.getElementById("home-btn");
-    const xScoreEl = document.getElementById("xScore");
-    const oScoreEl = document.getElementById("oScore");
-    const strike = document.getElementById("strike");
+    const title = document.getElementById("title");
+    const landing = document.getElementById("landing");
+    const aiBtn = document.getElementById("ai-btn");
+    const twoBtn = document.getElementById("two-btn");
 
-    let board = Array(9).fill("");
-    let currentPlayer = "X";
-    let gameActive = true;
-    let scores = { X: 0, O: 0 };
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get("mode");
+    const text = "Tic – Tac – Toe";
+    let index = 0;
 
-    function updateBackground() {
-      document.body.classList.remove("x-turn", "o-turn", "turn-pulse");
-      void document.body.offsetWidth; // reflow to replay animation
-      document.body.classList.add(currentPlayer === "X" ? "x-turn" : "o-turn");
-      document.body.classList.add("turn-pulse");
-    }
-
-    cells.forEach(cell => {
-      cell.addEventListener("click", () => handleClick(cell));
-    });
-
-    function handleClick(cell) {
-      const idx = cell.dataset.index;
-      if (!gameActive || board[idx] !== "") return;
-
-      board[idx] = currentPlayer;
-      cell.textContent = currentPlayer;
-      cell.style.color = currentPlayer === "X" ? "#ff00aa" : "#00ffff"; 
-      cell.style.textShadow = `0 0 15px ${currentPlayer === "X" ? "#ff00aa" : "#00ffff"}`;
-
-      const winPattern = checkWin();
-      if (winPattern) {
-        scores[currentPlayer]++;
-        updateScores();
-        status.textContent = `🎉 Player ${currentPlayer} wins!`;
-        gameActive = false;
-        drawStrike(winPattern);
-        return;
-      }
-
-      if (board.every(cell => cell !== "")) {
-        status.textContent = "It's a draw!";
-        gameActive = false;
-        return;
-      }
-
-      currentPlayer = currentPlayer === "X" ? "O" : "X";
-      status.textContent = `Player ${currentPlayer}'s turn`;
-      updateBackground();
-
-      if (mode === "ai" && currentPlayer === "O" && gameActive) {
-        setTimeout(aiMove, 400);
+    // Typewriter animation
+    function typeTitle() {
+      if (index < text.length) {
+        title.textContent += text[index];
+        index++;
+        setTimeout(typeTitle, 120);
       }
     }
+    typeTitle();
 
-    function aiMove() {
-      const available = board.map((v, i) => v === "" ? i : null).filter(v => v !== null);
-      const move = available[Math.floor(Math.random() * available.length)];
-      const cell = cells[move];
-      handleClick(cell);
+    // Smooth transition and navigation
+    function startGame(mode) {
+      landing.classList.add("fade-out");
+      setTimeout(() => {
+        window.location.href = `game.html?mode=${mode}`;
+      }, 800);
     }
 
-    function checkWin() {
-      const patterns = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
-      ];
-      for (const p of patterns) {
-        const [a,b,c] = p;
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) return p;
-      }
-      return null;
-    }
-
-    function updateScores() {
-      xScoreEl.textContent = `X: ${scores.X}`;
-      oScoreEl.textContent = `O: ${scores.O}`;
-    }
-
-    function drawStrike(pattern) {
-      const positions = [
-        { top: 60, left: 190, angle: 0, length: 380 },
-        { top: 190, left: 190, angle: 0, length: 380 },
-        { top: 320, left: 190, angle: 0, length: 380 },
-        { top: 190, left: 60, angle: 90, length: 380 },
-        { top: 190, left: 190, angle: 90, length: 380 },
-        { top: 190, left: 320, angle: 90, length: 380 },
-        { top: 190, left: 190, angle: 45, length: 537 },
-        { top: 190, left: 190, angle: -45, length: 537 },
-      ];
-      const idx = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
-      ].findIndex(p => p.toString() === pattern.toString());
-      const pos = positions[idx];
-      strike.style.top = `${pos.top}px`;
-      strike.style.left = `${pos.left}px`;
-      strike.style.transform = `translate(-50%, -50%) rotate(${pos.angle}deg)`;
-      strike.style.width = `${pos.length}px`;
-      strike.style.opacity = "1";
-      strike.style.background = currentPlayer === "X" ? "#ff00aa" : "#00ffff";
-      strike.style.boxShadow = `0 0 20px ${currentPlayer === "X" ? "#ff00aa" : "#00ffff"}`;
-    }
-
-    resetBtn.addEventListener("click", () => {
-      board.fill("");
-      cells.forEach(c => {
-        c.textContent = "";
-        c.style.textShadow = "";
-        c.style.color = "";
-      });
-      currentPlayer = "X";
-      gameActive = true;
-      status.textContent = `Player X's turn`;
-      strike.style.opacity = "0";
-      strike.style.width = "0";
-      updateBackground();
-    });
-
-    homeBtn.addEventListener("click", () => {
-      window.location.href = "index.html";
-    });
-
-    updateBackground();
+    aiBtn.addEventListener("click", () => startGame("ai"));
+    twoBtn.addEventListener("click", () => startGame("two"));
   </script>
 </body>
 </html>
